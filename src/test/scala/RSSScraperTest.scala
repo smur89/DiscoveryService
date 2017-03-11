@@ -1,6 +1,7 @@
 
 import java.io.File
 
+import SourceProviderProtocol.Source
 import akka.actor.ActorSystem
 import akka.testkit.TestActorRef
 import org.joda.time.{DateTime, DateTimeZone}
@@ -11,8 +12,7 @@ import org.scalatest.mockito.MockitoSugar
 class RSSScraperTest extends FunSuite with MockitoSugar {
 
   implicit val system = ActorSystem()
-  private val sourceServiceRef = mock[TestActorRef[SourceService]]
-  private val actorRef = TestActorRef(new RSSScraper(sourceServiceRef))
+  private val actorRef = TestActorRef[RSSScraper]
   private val rssScraper = actorRef.underlyingActor
 
   test("crawlSource") {

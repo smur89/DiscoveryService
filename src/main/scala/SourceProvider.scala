@@ -1,37 +1,46 @@
-import SourceProviderProtocol.{Fail, OK}
-import akka.actor.Actor
+import SourceProviderProtocol._
+import SourceServiceProtocol.GetAllSources
+import akka.actor.{Actor, Props}
+import akka.pattern.ask
+import akka.util.Timeout
 import com.typesafe.scalalogging.LazyLogging
-import org.joda.time.{DateTime, DateTimeZone}
+import org.joda.time.DateTime
 
-case class Source(uri: String, contentLength: Long, lastChecked: DateTime)
+import scala.collection.mutable
+import scala.concurrent.Await
+import scala.concurrent.duration.{Duration, _}
+
 
 object SourceProviderProtocol {
 
-  abstract class Response() {
-    val message: String
-    val discoveredUrlsCount: Int
-    val source: Source
-  }
+  case class Source(uri: String, contentLength: Long, lastChecked: DateTime)
 
-  case class OK(message: String, discoveredUrlsCount: Int)
+  case class AddSource(source: Source)
 
-  case class Fail(message: String, discoveredUrlsCount: Int, source: Source) extends Response
+  case class QueueSources()
 
 }
 
 class SourceProvider extends Actor with LazyLogging {
+  implicit val timeout = Timeout(5 seconds)
 
-  def getNextSource: Source = {
-    Source("http://pitchfork.com/rss/reviews/best/albums/", 0L, new DateTime(DateTimeZone.UTC))
-  }
+  private val sourceService = context.actorOf(Props[SourceService])
+  private val sources = mutable.Queue[Source]()
 
   override def receive: Receive = {
-    case _: OK => processSuccessfullyCrawledSource(_)
-    case Fail => logger.error("Something went wrong!")
-    case _ => logger.error("Unexpected Message received")
+    case AddSource(newSource) => sources.enqueue(newSource)
+    case _: QueueSources => queueSources()
   }
 
-  private def processSuccessfullyCrawledSource(response: OK) = {
-    logger.info("Source Processed OK")
+  def getNextSource: Source = {
+    val nextSource = sources.dequeue()
+    sources.enqueue(nextSource)
+    nextSource
+  }
+
+  def queueSources(): Unit = {
+    val allSources = sourceService ? GetAllSources
+    val sourcesToQueue = Await.result(allSources, Duration.Inf).asInstanceOf[Seq[Source]]
+    sourcesToQueue.foreach(sources.enqueue(_))
   }
 }

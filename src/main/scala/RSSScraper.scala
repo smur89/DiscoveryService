@@ -1,5 +1,6 @@
 import RSSScraperProtocol.Url
-import akka.actor.{Actor, ActorRef}
+import SourceProviderProtocol.Source
+import akka.actor.{Actor, Props}
 import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.{DateTime, DateTimeZone}
 import org.jsoup.nodes.Document
@@ -9,12 +10,12 @@ import org.jsoup.{Connection, Jsoup}
 import scala.collection.JavaConverters._
 
 object RSSScraperProtocol {
-
   case class Url(title: String, link: String, description: String)
-
 }
 
-class RSSScraper(sourcesService: ActorRef) extends Actor with LazyLogging {
+class RSSScraper extends Actor with LazyLogging {
+
+  private val sourceService = context.actorOf(Props[SourceService])
 
   override def receive: Receive = {
     case _: Source => crawlSource(_)
@@ -48,7 +49,7 @@ class RSSScraper(sourcesService: ActorRef) extends Actor with LazyLogging {
     val cookies = response.cookies()
     val contentType = response.contentType()
     val contentLength = response.header("Content-Length").toInt
-    sourcesService ! Source(source.uri, contentLength, new DateTime(DateTimeZone.UTC))
+    sourceService ! Source(source.uri, contentLength, new DateTime(DateTimeZone.UTC))
     contentLength != source.contentLength
   }
 }

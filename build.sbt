@@ -19,4 +19,6 @@ libraryDependencies ++= Seq(
   "org.scalactic" %% "scalactic" % "3.0.1",
   "org.scalatest" %% "scalatest" % "3.0.1" % "test",
   "com.typesafe.akka" %% "akka-testkit" % "2.4.17" % "test",
-  "org.mockito" % "mockito-core" % "1.9.5")
+  "org.mockito" % "mockito-core" % "1.9.5",
+  "commons-dbutils" % "commons-dbutils" %  "1.6"
+)
